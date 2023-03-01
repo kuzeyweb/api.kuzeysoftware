@@ -7,7 +7,6 @@ import blogs from './blogs'
 import comments from './blogComments'
 import pageContent from './pageContent'
 import categories from './categories'
-import forecast from './forecast'
 import contact from './contact'
 
 export {
@@ -20,6 +19,5 @@ export {
     comments,
     pageContent,
     categories,
-    forecast,
     contact
 }
