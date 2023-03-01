@@ -1,0 +1,182 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+  binaryTargets   = ["linux-musl", "native"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model settings {
+  id             Int     @id @default(autoincrement())
+  name           String
+  value          Boolean
+  application_id Int?
+}
+
+model users {
+  id               Int                @id @default(autoincrement())
+  application_id   Int
+  first_name       String
+  last_name        String
+  email            String             @unique
+  password         String             @db.VarChar(400)
+  profile_picture  String?            @db.VarChar(300)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime?          @updatedAt
+  last_login       DateTime?
+  deleted_at       DateTime?
+  role             roles              @relation(fields: [role_id], references: [id])
+  role_id          Int
+  status           status
+  validation_codes validation_codes[]
+  user_tokens      user_tokens[]
+  blog_post        blog_post[]
+
+  @@index([email])
+  @@fulltext([first_name, last_name])
+}
+
+model validation_codes {
+  id      Int              @id @default(autoincrement())
+  user_id Int
+  email   String
+  code    String           @db.VarChar(400)
+  user    users            @relation(fields: [user_id], references: [id])
+  type    validation_types
+
+  @@index([email])
+}
+
+model user_tokens {
+  id              Int         @id @default(autoincrement())
+  user_id         Int
+  token           String      @db.VarChar(300)
+  created_at      DateTime    @default(now())
+  ip_address      String
+  fingerprint     String
+  browser         String?
+  browser_version String?
+  OS              String?
+  OS_version      String?
+  user_agent      String?
+  isMobile        Boolean?
+  user            users       @relation(fields: [user_id], references: [id])
+  expires_at      DateTime
+  last_use_time   DateTime?
+  type            token_types
+}
+
+model blog_post {
+  id             Int            @id @default(autoincrement())
+  title          String
+  content        String         @db.LongText
+  slug           String
+  status         post_statuses
+  like_count     Int?
+  thumbnail      String?        @db.VarChar(500)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime?      @updatedAt
+  deleted_at     DateTime?
+  view_count     Int?
+  video_url      String?        @db.LongText
+  user_id        Int
+  application_id Int
+  user           users          @relation(fields: [user_id], references: [id])
+  blog_comment   blog_comment[]
+  category_id    Int
+  category       categories     @relation(fields: [category_id], references: [id])
+
+  @@fulltext([title, content])
+}
+
+model blog_comment {
+  id             Int              @id @default(autoincrement())
+  full_name      String
+  email          String
+  comment        String           @db.VarChar(500)
+  blog_id        Int
+  blog           blog_post        @relation(fields: [blog_id], references: [id], onDelete: Cascade)
+  status         comment_statuses
+  parent_id      Int?
+  application_id Int
+  created_at     DateTime         @default(now())
+  updated_at     DateTime?        @updatedAt
+  deleted_at     DateTime?
+}
+
+model permissions {
+  id             Int                     @id @default(autoincrement())
+  application_id Int
+  name           String
+  roles          roles_has_permissions[]
+}
+
+model roles {
+  id             Int                     @id @default(autoincrement())
+  application_id Int
+  name           String                  @unique
+  created_at     DateTime                @default(now())
+  updated_at     DateTime?               @updatedAt
+  permissions    roles_has_permissions[]
+  users          users[]
+}
+
+model roles_has_permissions {
+  id            Int         @id @default(autoincrement())
+  role_id       Int
+  permission_id Int
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permissions   permissions @relation(fields: [permission_id], references: [id])
+}
+
+model categories {
+  id             Int         @id @default(autoincrement())
+  application_id Int
+  name           String
+  created_at     DateTime    @default(now())
+  blogs          blog_post[]
+}
+
+model page_content {
+  id             Int    @id @default(autoincrement())
+  application_id Int
+  page           String
+  image          Json
+  content        Json
+}
+
+enum status {
+  active
+  inactive
+  deleted
+  email_validation_pending
+  suspended
+}
+
+enum post_statuses {
+  public
+  archived
+}
+
+enum comment_statuses {
+  approved
+  pending
+  unapproved
+}
+
+enum token_types {
+  access
+  refresh
+}
+
+enum validation_types {
+  email_verification
+  two_factor_auth
+  password_reset
+}
